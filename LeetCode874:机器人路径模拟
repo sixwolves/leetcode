@@ -1,0 +1,102 @@
+题目：
+
+A robot on an infinite grid starts at point (0, 0) and faces north.  The robot can receive one of three possible types of commands:
+
+-2: turn left 90 degrees
+-1: turn right 90 degrees
+1 <= x <= 9: move forward x units
+Some of the grid squares are obstacles. 
+
+The i-th obstacle is at grid point (obstacles[i][0], obstacles[i][1])
+
+If the robot would try to move onto them, the robot stays on the previous grid square instead (but still continues following the rest of the route.)
+
+Return the square of the maximum Euclidean distance that the robot will be from the origin.
+
+题目大意是说有一个机器人初始时在坐标(0,0)位置，在无限大的平面中行走，初始时方向正北，给定一系列命令，要求寻找机器人在某个点离远点最远距离的平方。
+
+解题思路：
+
+这道题在leetcode难度是simple，也就是简单，实际上这道题思路简单，但是想写出完整的代码还是不容易的。首先，我们需要定义方向，这个可以任意定义，我是这么做的，声明一个变量direction，它的取值集合为{0,1,2,3}，分别表示正北，正东，正南，正西四个方向，再定义两个变量currentX，currentY，表示当前机器人所在的坐标，另外需要考虑的是有障碍物的情况，每一个障碍物的坐标已经保存在obstacles数组中，接下来以一个具体的案例为例解释应该如何做：
+
+假设某一次机器人在(2,4)这个位置，此时direction=3，表示机器人面朝正西，如果commands[i]<0,表示只需要改变方向，也就是修改direction的值。
+
+commands[i]=-1,表示向右转，direction=(direction+1)%4,这里取模的主要考虑到direction=3时，向右转到正北，direction应该等于零；
+
+commands[i]=-2,表示向左转，direction=(direction+3)%4,向左转一次可以认为是向右转3次。
+
+commands[i]=4.表示向前进4格，如果此时direction=3，表示应该向正西方向前进4格，我们的第一个问题是，能向前进这么多吗？
+
+能不能要看从当前的坐标，然后向西进4格这条路径上是否有障碍物，我们知道，此时机器人在（2,4）位置上，向西前进4格如果没有障碍物，应该到达（-2,4）的位置，也就是说，向西前进y坐标不变，此时，我们应该遍历障碍物数组，看看是否有障碍物落在这条线上，遍历的时候obstacles[j][1]=4&&obstacles[j][0]>=-2&&obstacles[j][0]<2,就表示该路径中存在一个障碍物，这里要注意，为什么-2那个地方要取等号，而2可以不取等号，假设obstacles[j][0]=-2，表示刚好目标位置（-2,4）是一个障碍物，按照题意，机器人不能到达障碍物，只能到达障碍物的前一位置，因此，取等号的时候也要考虑进去。假设obstacles[j][0]=2，这实际上是不存在的，因为机器人不可能处在一个障碍物上，只要我们正确更新机器人的行走路径。另外还需要考虑一个问题，就是当这条路径上有不止一个障碍物应该怎么取舍，比如从（2,4）到（-2,4）这条路上，如果有（-1,4）、（0,4）两个障碍物，应该怎么办呢，按照题目意思，应该去里起点（2,4）最近的那个障碍物（0,4）的前一个位置，也就是机器人此时只能走一步，走到（1,4）位置。
+
+最后需要思考一个问题，什么时候需要计算距离，答案是每当机器人走到一个新的坐标，需要考虑下一步应该怎么走的时候，就应该计算一次距离，然后更新结果。
+
+java代码如下：
+
+    public int[]getDirection(int direction,int currentX,int currentY,int[][]obstacles,int step){
+        //该函数的含义是，给定direction,取值在0,1,2,3,当前位置坐标是(currentX,currentY),需要向direction方向前进
+        //step步，当然，所有的障碍物都在obstacles中存储
+        int[]result=new int[2]; // 该变量含义是在这种情况下最终返回的结果坐标是(result[0],result[1])
+        int i,aimX=0,aimY=0;// 目标位置坐标是(aimX,aimY)
+        switch(direction){ // 根据direction的方向前进
+        case 0: // 表示应该往正北方向前进step
+            aimX=currentX;// 往正北方向前进x坐标是不变的
+            aimY=currentY+step; // 往正北方向前进step步，那么aimY应该在currentY的基础上加上step，
+            //如果此时这条路径上没有障碍物,那么aimY得到正确更新
+            for(i=0;i<obstacles.length;i++){
+                if(obstacles[i][0]==aimX&&obstacles[i][1]>currentY&&obstacles[i][1]<=aimY)
+                    aimY=obstacles[i][1]-1;
+            }
+            // for循环中遍历所有障碍物，如果发现在这条路径上存在障碍物，那么应该在障碍物的前一个点停下来
+            break;
+        case 1:
+            aimX=currentX+step;
+            aimY=currentY;
+            for(i=0;i<obstacles.length;i++){
+                if(obstacles[i][1]==aimY&&obstacles[i][0]>currentX&&obstacles[i][0]<=aimX)
+                    aimX=obstacles[i][0]-1;
+            }
+            break;
+        case 2:
+            aimX=currentX;
+            aimY=currentY-step;
+            for(i=0;i<obstacles.length;i++){
+                if(obstacles[i][0]==aimX&&obstacles[i][1]<currentY&&obstacles[i][1]>=aimY)
+                    aimY=obstacles[i][1]+1;
+            }
+            break;
+        default:
+            aimY=currentY;
+            aimX=currentX-step;
+            for(i=0;i<obstacles.length;i++)
+                if(obstacles[i][1]==aimY&&obstacles[i][0]<currentX&&obstacles[i][0]>=aimX)
+                    aimX=obstacles[i][0]+1;
+        }
+        result[0]=aimX;
+        result[1]=aimY;
+        return result;
+    }
+    public int robotSim(int[] commands, int[][] obstacles) {
+        int direction=0,currentX=0,currentY=0,i,result=0,tempResult=0;
+        // direction表示机器人当前的方向，(currentX,currentY)表示机器人当前所在的坐标
+        // result表示最终离原点最长距离的平方，tempResult表示当前坐标离远点的距离的平方
+        if(commands==null||commands.length<=0)
+            return result;
+        for(i=0;i<commands.length;i++){
+            if(commands[i]>0){
+                int []directionIndex=getDirection(direction, currentX, currentY, obstacles, commands[i]);
+                currentX=directionIndex[0];
+                currentY=directionIndex[1];
+                tempResult=currentX*currentX+currentY*currentY;
+                result=tempResult>result?tempResult:result;
+            }
+            else{ // commands[i]<0表示只需要改变方向
+                if(commands[i]==-1) // commands[i]=-1,表示右转，方向+1
+                    direction=(direction+1)%4;
+                else
+                    direction=(direction+4-1)%4;
+            }
+        }
+        System.out.println(result);
+        return result;
+    }
