@@ -1,0 +1,141 @@
+题目：
+
+On a staircase, the i-th step has some non-negative cost cost[i] assigned (0 indexed).
+
+Once you pay the cost, you can either climb one or two steps. You need to find minimum cost to reach the top of the floor, and you can either start from the step with index 0, or the step with index 1.
+
+题解：
+
+题目要求起点是0或1下标位置处，走到最顶楼梯花费的最小代价是多少。cost[i]=j表示第i节楼梯需要花费的代价是j。每到一层可以跳一阶到下一个楼梯，也可以跳二阶到下下个楼梯。
+
+输入输出描述：
+
+input:cost=[10,15,20]。
+
+output:15
+
+解释：
+
+      最小代价是15。具体来说，从1下标开始，此时需要花费15，然后跳2阶到顶层（跳1阶到下标2位置，花费代价增加）。
+
+解题思路：
+
+第一个想法是暴力递归（说实话深度优先搜索自己个人已经比较熟练了，很多时候看到这个题目第一想法就是暴力递归，深度优先搜索，已经形成惯性思维了）。
+
+深度优先搜索的思路是：“不到南墙不回头”。具体来说，深度优先搜索并不管最终决策如何，只管当前决策有几种可能性，就搜索多少次。
+
+在这个地方也总结一下暴力递归的套路：
+
+暴力递归模板：
+
+void depthSearch(a,b):
+
+    if(condition):
+
+          // 达到递归终止条件（也就是到了“南墙”），进行相应的操作，比如更新结果数组，更新其他变量
+
+    else
+
+    //状态改变
+
+    depthSearch(a+1,b)
+
+    //状态恢复（也就是“回头”的过程）
+
+基本上深度优先搜索就是这么个流程走，在这个函数的模板中，我定义了两个参数a，b，实际应用中可以有多个参数，而且a，b参数类型也可以多种多样，有时候为了保存结果变量，比如，步数最少，代价最小，这个时候参数就可以声明成一个int[]result,它的长度是1，因为java中基本数据类型参数传值是值传递，对形参的改变不影响实参，有些时候我们需要对某一层递归的参数进行全局修改，因此可以考虑使用一个长度为1的数组，这个技巧一定要学会。具有类似性质的技巧还有StringBuilder(需要对String变量进行修改)。
+
+第二个需要考虑的点是，状态改变，继续搜索，状态恢复这三个步骤怎么理解。
+
+在上面的部分我已经说过深度优先搜索只关注当前如何决策，其实决策的过程就是状态改变的过程，当前决策完毕，就开始继续深度搜索，那么，为什么需要状态恢复这个过程呢？
+
+我们知道，由于深度优先搜索只关注当前的决策，对于全局是否是最优或者最佳决策深度优先并不关心，因此，就需要遍历所有的情况，当前位置决策结束后，把状态恢复，就可以继续进行搜索。
+
+好了，理论部分就在这里，下面直接给出代码，结合代码与理论解释深度优先搜索的过程。
+
+    // totalPay表示走到i位置之前需要的总的花费
+    // i表示当前走到的位置
+    // cost数组表示每一阶楼梯花费的代价
+    // result是一个长度为1的整形数组，表示最小的花费，由于它需要全局修改，
+    // 如果只声明一个int 变量，由于java值传递的特性，在下一次递归调用时
+    // 做不到全局修改，因此需要弄成数组，这个技巧一定要会
+    public void depthSearch(int totalPay,int i,int[]cost,int[]result){
+        if(i>=cost.length){  //这个地方就是撞到“南墙”，也就是递归结束条件
+        // 可能有人会问，为什么结束条件是i>=cost.length,i有可能大于cost.length吗
+        // 回答是，可能，我们知道cost数组是每个楼梯在某一层的花费代价，也就是说
+        // cost的长度代表了有几阶楼梯，如果搜索到i>=cost.length，说明早就到了顶
+        // 端，按照题意确实应该停止，那么什么情况会出现i>cost.length呢。
+        // 按照题目意思，在每一阶楼梯都可以往上(或者说往右)走一步或者两步，如果
+        // 我在最后一阶楼梯走一步，那么就会到达cost.lenth位置，如果在最后一阶楼
+        // 梯走两步，就会到达cost.length+1位置，也就是到了>cost.length的情况
+            if(totalPay<result[0])
+                result[0]=totalPay;
+        // 上述部分的第二个if(totalPay<result[0])作何解释呢？
+        // 如果i>=cost.length,说明此时已经到达楼顶，也就是说搜索到一条合法的路径
+        // 我们比较当前这条路径的花费totalPay和已经搜索到的花费result[0]哪个更少
+        // 继续更新result[0],result[0]始终保存着当前搜索到的合法路径中花费最小的。
+        }
+        else{
+            // 从这个else开始，是递归调用，也就是深度优先搜索的过程
+            totalPay+=cost[i];i++; // 状态改变，表示往上走一步（位置改变），其实还有一个变量也改变
+            // 了，就是totalPay，表示花费增加了，因为走了当前位置i，就需要花费cost[i]
+            depthSearch(totalPay, i, cost, result); // 深度搜索
+            // 在这里，我为了演示状态改变和恢复的过程，代码多写了几行
+            // 其实更简洁的语句是depthSearch(totalPay+cost[i], i+1, cost, result); 
+            i--; // 状态恢复
+            i+=2; // 状态改变,表示往上走两步
+            depthSearch(totalPay+cost[i], i, cost, result);
+            i-=2; // 状态恢复
+        }
+    }
+    public int minCostClimbingStairs(int[] cost) {
+        if(cost==null||cost.length==0)
+            return 0;
+        int[]result=new int[1];
+        result[0]=Integer.MAX_VALUE;
+        depthSearch(0, 0, cost, result); // 题目中说了可以从0开始，也可以从1开始
+        depthSearch(0, 1, cost, result);
+        System.out.println(result[0]);
+        return result[0];
+    }
+
+非常兴奋提交，然后，喜闻乐见的超时了。
+
+既然暴力递归超时了，一个想法就是将其转化成动态规划，那么，动态规划该如何设计呢？
+
+动态规划思想主要是以空间换时间，在这道题中，就是使用一个数组dp,它和cost具有相同的长度
+
+dp[i]=j表示走到位置i需要的最小花费为j
+
+我们知道，每一个位置在到下一个位置的时候都有两种情况，要么走一步，也就是走到i+1的位置，
+
+要么走两步，也就是走到i+2的位置，换句话说，当前的位置i一定是从i-1走一步过来或者是i-2走两
+
+步过来的，只有可能是这两种情况，由于dp[i]需要是最小花费代价，因此上述两种情况取最小值就
+
+是dp[i]的值，不难写出下面的代码
+
+    public int minCostClimbingStairs(int[] cost) {
+        if(cost==null||cost.length==0)
+            return 0;
+        if(cost.length==1)
+            return cost[0];
+        if(cost.length==2)
+            return Math.min(cost[0], cost[1]);
+        int[]dp=new int[cost.length];
+        dp[0]=cost[0];
+        dp[1]=cost[1];
+        int i;
+        for(i=2;i<dp.length;i++)
+            dp[i]=Math.min(dp[i-1], dp[i-2])+cost[i];
+        i=dp.length-1;
+        return Math.min(dp[i], dp[i-1]);
+    }
+
+总结：很多时候，动态规划都是因为暴力递归耗时太长而想出来的优化算法，
+
+以空间换时间，从而降低时间复杂度。
+--------------------- 
+作者：none123java321 
+来源：CSDN 
+原文：https://blog.csdn.net/none123java321/article/details/83387674 
+版权声明：本文为博主原创文章，转载请附上博文链接！
